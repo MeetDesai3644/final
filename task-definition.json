@@ -1,0 +1,32 @@
+{
+    "family": "meet-flask-app-task",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::794038211044:role/meet-ecs-execution-role",
+    "containerDefinitions": [
+        {
+            "name": "meet-flask-container",
+            "image": "794038211044.dkr.ecr.us-east-1.amazonaws.com/flask-app-repo-meet:placeholder",
+            "portMappings": [
+                {
+                    "containerPort": 5000,
+                    "hostPort": 5000,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/meet-api-task-def",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ]
+}
