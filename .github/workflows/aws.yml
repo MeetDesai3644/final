@@ -8,7 +8,7 @@ on:
 env:
   # --- START: USER CONFIGURABLE VARIABLES ---
   AWS_REGION: us-east-1
-  ECR_REPOSITORY_URI: 794038211044.dkr.ecr.us-east-1.amazonaws.com/flask-app-repo-meet
+  ECR_REPOSITORY_URI: 717279703421.dkr.ecr.us-east-1.amazonaws.com/flask-app-repo-meet
   ECS_CLUSTER_NAME: meet-flask-ecs-cluster  
   ECS_SERVICE_NAME: meet-ecs-service  
   ECS_TASK_DEFINITION_FILE: task-definition.json 
