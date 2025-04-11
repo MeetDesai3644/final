@@ -1,0 +1,77 @@
+name: Build and Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  # --- START: USER CONFIGURABLE VARIABLES ---
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_URI: 794038211044.dkr.ecr.us-east-1.amazonaws.com/flask-app-repo-meet
+  ECS_CLUSTER_NAME: meet-flask-ecs-cluster  
+  ECS_SERVICE_NAME: meet-ecs-service  
+  ECS_TASK_DEFINITION_FILE: task-definition.json 
+  CONTAINER_NAME: meet-flask-container
+  DOCKER_BUILD_IMAGE_NAME: flask-app 
+  # --- END: USER CONFIGURABLE VARIABLES ---
+
+jobs:
+  build-push-deploy: 
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Configure AWS Credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2 
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }} 
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Step 3: Build Docker image
+      - name: Build Docker image
+        run: docker build -t ${{ env.DOCKER_BUILD_IMAGE_NAME }} .
+
+      # Step 4: Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2 
+
+      # Step 5: Tag and Push image to Amazon ECR
+      - name: Tag and Push image to Amazon ECR
+        id: build-image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Tag the locally built image with the ECR repository URI and commit SHA
+          docker tag ${{ env.DOCKER_BUILD_IMAGE_NAME }}:latest ${{ env.ECR_REPOSITORY_URI }}:${{ env.IMAGE_TAG }}
+
+          # Push the commit SHA tagged image to ECR
+          docker push ${{ env.ECR_REPOSITORY_URI }}:${{ env.IMAGE_TAG }}
+       
+          # Set the output variable for the exact image pushed (commit SHA version)
+          echo "image=${{ env.ECR_REPOSITORY_URI }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+
+   
+      # Step 6: Render new task definition with updated image URI
+      - name: Render new task definition with updated image URI
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION_FILE }} 
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }} 
+
+      # Step 7: Deploy new task definition to ECS Service
+      - name: Deploy new task definition to ECS Service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_NAME }} 
+          cluster: ${{ env.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true 
+      
