@@ -3,7 +3,8 @@ import socket
 
 app = Flask(__name__)
 hostname = socket.gethostname()
-ip_address = socket.gethostbyname(hostname)
+ip_address = "The hostname doesnt have ip attached"
+# ip_address = socket.gethostbyname(hostname)
 
 @app.route('/')
 def hello_cloud():
